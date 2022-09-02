@@ -69,6 +69,22 @@ while playGame:
         else:
             # --------------------------------------------------------------------------
             # Блок подсказок
+            # Обязательные подсказки
+            xDif = abs(digit - x)
+            if xDif < 3:
+                print('Очень горячо!')
+            elif xDif < 5:
+                print('Горячо')
+            elif xDif < 10:
+                print('Тепло')
+            elif xDif < 15:
+                print('Прохладно')
+            elif xDif < 20:
+                print('Холодно')
+            else:
+                print('Ледяной ветер')
+
+            # Подсказки на выбор игрока
             if countInput > 1:
                 if input('Нужна подсказка? 1 - да, 2 - нет: ') == '1':
                     if 2 < countInput < 5:
