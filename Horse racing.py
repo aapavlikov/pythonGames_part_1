@@ -41,7 +41,7 @@ def save_money(money_to_save):  # To save money to file
 
 def refresh_combo(event_object):  # To update bids list, if money amount is changed (bid on another horse is done)
     summ = bid_01_summ.get() + bid_02_summ.get() + bid_03_summ.get() + bid_04_summ.get()
-    label_all_money['text'] = f'У вас на счету осталось {money - summ} {currency}'
+    label_all_money['text'] = f'У вас на счету осталось {int(money - summ)} {currency}'
 
     bid_01['values'] = get_values(
         int(money - bid_01_summ.get() - bid_02_summ.get() - bid_03_summ.get() - bid_04_summ.get()))
@@ -93,6 +93,102 @@ def get_values(mny):  # To calculate bids list
         if mny > 0:
             values.append(mny)
 
+
+def win_round(horse):
+    global x01, x02, x03, x04, money
+    result = 'К финишу пришла лошадь '
+    win = 0
+    if horse == 1:
+        result += horse_01_name
+        win = bid_01_summ.get() * win_coef_01
+    elif horse == 2:
+        result += horse_02_name
+        win = bid_02_summ.get() * win_coef_02
+    elif horse == 3:
+        result += horse_03_name
+        win = bid_03_summ.get() * win_coef_03
+    elif horse == 4:
+        result += horse_04_name
+        win = bid_04_summ.get() * win_coef_04
+
+    if horse > 0:
+        result += f'! Вы выиграли {int(win)} {currency}'
+        if win > 0:
+            result += '! Поздравляем! Средства уже зачислены на ваш счёт!'
+        else:
+            result += '! К сожалению, ваша лошадь была неправильной. Попробуйте ещё раз!'
+            insert_text('Делайте ставку! Увеличивайте прибыль!')
+        messagebox.showinfo('РЕЗУЛЬТАТ', result)
+    else:
+        messagebox.showinfo('Всё плохо', 'До финиша не дошёл никто. Забег признан несостоявшимся. Все ставки возвращены.')
+        insert_text('Забег признан несостоявшимся.')
+        win = bid_01_summ.get() + bid_02_summ.get() + bid_03_summ.get() + bid_04_summ.get()
+
+    money += win
+    save_money(int(money))
+
+    start_button['state'] = 'normal'
+
+    bid_01['state'] = 'readonly'
+    bid_02['state'] = 'readonly'
+    bid_03['state'] = 'readonly'
+    bid_04['state'] = 'readonly'
+
+    bid_01.current(0)
+    bid_02.current(0)
+    bid_03.current(0)
+    bid_04.current(0)
+
+    x01 = 20
+    x02 = 20
+    x03 = 20
+    x04 = 20
+
+    horse_place_in_window()
+
+    refresh_combo('')
+    view_weather()
+    view_horse_health()
+    insert_text(f'Ваши средства; {int(money)} {currency}')
+
+    if money < 1:
+        messagebox.showinfo('Стоп!', 'Здесь без денег делать нечего!')
+        quit(0)
+
+
+def setup_horse():
+    global state_01, state_02, state_03, state_04, weather, time_day
+    global win_coef_01, win_coef_02, win_coef_03, win_coef_04, fast_speed_01, fast_speed_02, fast_speed_03, fast_speed_04
+    global play_01, play_02, play_03, play_04, reverse_01, reverse_02, reverse_03, reverse_04
+
+    weather = random.randint(1, 4)
+    time_day = random.randint(1, 4)
+
+    state_01 = random.randint(1, 5)
+    state_02 = random.randint(1, 5)
+    state_03 = random.randint(1, 5)
+    state_04 = random.randint(1, 5)
+
+    win_coef_01 = int(100 + random.randint(1, 30 + state_01 * 60)) / 100
+    win_coef_02 = int(100 + random.randint(1, 30 + state_02 * 60)) / 100
+    win_coef_03 = int(100 + random.randint(1, 30 + state_03 * 60)) / 100
+    win_coef_04 = int(100 + random.randint(1, 30 + state_04 * 60)) / 100
+
+    reverse_01 = False
+    reverse_02 = False
+    reverse_03 = False
+    reverse_04 = False
+
+    play_01 = True
+    play_02 = True
+    play_03 = True
+    play_04 = True
+
+    fast_speed_01 = False
+    fast_speed_02 = False
+    fast_speed_03 = False
+    fast_speed_04 = False
+
 # ========================
 # ==== INFO FUNCTIONS ====
 
@@ -100,10 +196,6 @@ def get_values(mny):  # To calculate bids list
 def insert_text(s):  # To add message to info-chat
     info_chat.insert(INSERT, s + '\n')
     info_chat.see(END)
-
-
-def view_money():  # To add money amount message to info-chat
-    pass
 
 
 def view_weather():  # To add weather status message to info-chat
@@ -181,10 +273,27 @@ def move_horse():  # To calculate horses position and move them
         else:
             x04 += speed_04
 
+    all_play = play_01 or play_02 or play_03 or play_04  # Flag will be True if all horses will not move
+    all_x = x01 < 0 and x02 < 0 and x03 < 0 and x04 < 0  # Flag will be True if all horses will run away to the left
+    all_reverse = reverse_01 and reverse_02 and reverse_03 and reverse_04  # Flag will be True if all horses run to the left
+
+    if not all_play or all_x or all_reverse:
+        win_round(0)
+        return 0
+
     horse_place_in_window()
 
     if x01 < 952 and x02 < 952 and x03 < 952 and x04 < 952:  # If run not ended
         root.after(5, move_horse)  # Repeat after 5 mSec.
+    else:
+        if x01 >= 952:
+            win_round(1)
+        if x02 >= 952:
+            win_round(2)
+        if x03 >= 952:
+            win_round(3)
+        if x04 >= 952:
+            win_round(4)
 
 
 def run_horse():  # To block bids and run "def move_horse():"
@@ -357,11 +466,11 @@ info_chat['yscrollcommand'] = scroll.set
 # ---- Money amount ----
 money = load_money()  # Load money amount from file
 
-if money <= 0:  # If zero money, playing game is forbidden
+if money < 1:  # If zero money, playing game is forbidden
     messagebox.showinfo('Стоп!', 'Здесь без денег делать нечего!')
     quit(0)
 
-label_all_money = Label(text=f'Осталось средств: {money} {currency}')  # Create widget for money (Example of Label)
+label_all_money = Label(text=f'Осталось средств: {int(money)} {currency}')  # Create widget for money (Example of Label)
 label_all_money.place(x=20, y=565)  # Show widget
 
 # ---- Weather ----
